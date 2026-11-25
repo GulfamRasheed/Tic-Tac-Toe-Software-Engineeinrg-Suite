@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tic-Tac-Toe — Glassmorphism Prototype</title>
+<style>
+  :root {
+    --bg-1: #1b2a6b;
+    --bg-2: #5b2a8a;
+    --bg-3: #0f7a8c;
+    --glass: rgba(255, 255, 255, 0.14);
+    --glass-strong: rgba(255, 255, 255, 0.24);
+    --stroke: rgba(255, 255, 255, 0.35);
+    --text: #ffffff;
+    --text-dim: rgba(255, 255, 255, 0.82);
+    --x-color: #7df9ff;
+    --o-color: #ffd6f4;
+    --win-bg: rgba(255, 255, 255, 0.28);
+    --focus: #ffe066;
+    --radius: 22px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(ellipse 80% 60% at 15% 10%, var(--bg-3) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 70% at 85% 20%, var(--bg-2) 0%, transparent 60%),
+      radial-gradient(ellipse 90% 80% at 50% 100%, var(--bg-1) 0%, transparent 70%),
+      linear-gradient(160deg, var(--bg-1), var(--bg-2));
+    background-attachment: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    min-height: 100vh;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 460px;
+    background: var(--glass);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    padding: 24px 22px 26px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: clamp(1.35rem, 4.5vw, 1.7rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .subtitle {
+    margin: 0 0 18px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 8px 14px;
+    margin-bottom: 16px;
+    background: var(--glass);
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .status .mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    font-weight: 800;
+  }
+
+  .mark.x { color: var(--x-color); text-shadow: 0 0 12px var(--x-color); }
+  .mark.o { color: var(--o-color); text-shadow: 0 0 12px var(--o-color); }
+
+  .board-wrap {
+    position: relative;
+    margin: 0 auto;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .cell {
+    aspect-ratio: 1 / 1;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(2rem, 9vw, 3rem);
+    font-weight: 800;
+    color: var(--text);
+    background: var(--glass);
+    border: 1px solid var(--stroke);
+    border-radius: 18px;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 0;
+    line-height: 1;
+  }
+
+  .cell:hover:not(:disabled) {
+    background: var(--glass-strong);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .cell:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  .cell:disabled {
+    cursor: default;
+    opacity: 1;
+  }
+
+  .cell.taken { cursor: default; }
+
+  .cell.x { color: var(--x-color); text-shadow: 0 0 16px var(--x-color); }
+  .cell.o { color: var(--o-color); text-shadow: 0 0 16px var(--o-color); }
+
+  .cell.win {
+    background: var(--win-bg);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7), 0 0 24px rgba(255, 255, 255, 0.35);
+    animation: pulse 0.9s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+  }
+
+  .actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 18px;
+  }
+
+  .btn {
+    font: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    color: #1b2a6b;
+    background: linear-gradient(135deg, #ffffff, #d9f6ff);
+    border: none;
+    border-radius: 999px;
+    padding: 12px 30px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35); }
+  .btn:active { transform: translateY(0); }
+  .btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(15, 20, 60, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 18px;
+    text-align: center;
+    padding: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .overlay.show { opacity: 1; visibility: visible; }
+
+  .overlay .result {
+    font-size: clamp(1.4rem, 6vw, 1.9rem);
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    margin: 0;
+  }
+
+  .overlay .hint {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  .overlay .btn { margin-top: 6px; }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend b { font-size: 1.05rem; }
+
+  @media (max-width: 380px) {
+    .card { padding: 18px 14px 20px; }
+    .board { gap: 8px; }
+    .cell { border-radius: 14px; min-height: 56px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="card" aria-label="Tic-Tac-Toe game, glassmorphism style">
+  <h1>Tic-Tac-Toe</h1>
+  <p class="subtitle">Glass Edition</p>
+
+  <div class="status" id="status" role="status" aria-live="polite">
+    <span class="mark x" id="statusMark" aria-hidden="true">X</span>
+    <span id="statusText">Player X's turn</span>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board" role="grid" aria-label="3 by 3 Tic-Tac-Toe board"></div>
+    <div class="overlay" id="overlay" aria-hidden="true">
+      <p class="result" id="resultText"></p>
+      <p class="hint" id="resultHint">Press New Game to play again</p>
+      <button class="btn" id="overlayRestart" type="button">New Game</button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="restart" type="button">Restart</button>
+  </div>
+
+  <div class="legend" aria-hidden="true">
+    <span><b class="mark x">X</b> Player 1</span>
+    <span><b class="mark o">O</b> Player 2</span>
+  </div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var SIZE = 3;
+  var boardEl = document.getElementById("board");
+  var statusText = document.getElementById("statusText");
+  var statusMark = document.getElementById("statusMark");
+  var overlay = document.getElementById("overlay");
+  var resultText = document.getElementById("resultText");
+  var restartBtn = document.getElementById("restart");
+  var overlayRestartBtn = document.getElementById("overlayRestart");
+
+  var cells = [];
+  var state = [];
+  var current = "X";
+  var gameOver = false;
+
+  var LINES = (function () {
+    var lines = [];
+    var i, j;
+    for (i = 0; i < SIZE; i++) {
+      var row = [], col = [];
+      for (j = 0; j < SIZE; j++) {
+        row.push(i * SIZE + j);
+        col.push(j * SIZE + i);
+      }
+      lines.push(row);
+      lines.push(col);
+    }
+    var d1 = [], d2 = [];
+    for (i = 0; i < SIZE; i++) {
+      d1.push(i * SIZE + i);
+      d2.push(i * SIZE + (SIZE - 1 - i));
+    }
+    lines.push(d1, d2);
+    return lines;
+  })();
+
+  function buildBoard() {
+    boardEl.innerHTML = "";
+    cells = [];
+    state = [];
+    for (var i = 0; i < SIZE * SIZE; i++) {
+      state.push("");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cell";
+      btn.setAttribute("role", "gridcell");
+      btn.setAttribute("aria-label", "Cell " + (Math.floor(i / SIZE) + 1) + ", " + ((i % SIZE) + 1) + ", empty");
+      btn.addEventListener("click", onCellClick);
+      boardEl.appendChild(btn);
+      cells.push(btn);
+    }
+  }
+
+  function findWin() {
+    for (var i = 0; i < LINES.length; i++) {
+      var line = LINES[i];
+      var v = state[line[0]];
+      if (v && line.every(function (idx) { return state[idx] === v; })) {
+        return { player: v, line: line };
+      }
+    }
+    return null;
+  }
+
+  function isDraw() {
+    return state.every(function (v) { return v !== ""; });
+  }
+
+  function setTurnStatus() {
+    statusText.textContent = "Player " + current + "'s turn";
+    statusMark.textContent = current;
+    statusMark.className = "mark " + current.toLowerCase();
+  }
+
+  function updateCellAria(i, label) {
+    cells[i].setAttribute("aria-label", "Cell " + (Math.floor(i / SIZE) + 1) + ", " + ((i % SIZE) + 1) + ", " + label);
+  }
+
+  function finish(win) {
+    gameOver = true;
+    cells.forEach(function (c) { c.disabled = true; });
+    if (win) {
+      win.line.forEach(function (idx) { cells[idx].classList.add("win"); });
+      resultText.textContent = "Player " + win.player + " wins!";
+      statusText.textContent = "Player " + win.player + " wins!";
+    } else {
+      resultText.textContent = "It's a draw!";
+      statusText.textContent = "It's a draw!";
+    }
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden", "false");
+    overlayRestartBtn.focus();
+  }
+
+  function onCellClick(e) {
+    var idx = cells.indexOf(e.currentTarget);
+    if (gameOver || state[idx] !== "") { return; }
+    state[idx] = current;
+    var cell = cells[idx];
+    cell.textContent = current;
+    cell.classList.add("taken", current.toLowerCase());
+    updateCellAria(idx, current);
+    var win = findWin();
+    if (win) { finish(win); return; }
+    if (isDraw()) { finish(null); return; }
+    current = current === "X" ? "O" : "X";
+    setTurnStatus();
+  }
+
+  function restart() {
+    overlay.classList.remove("show");
+    overlay.setAttribute("aria-hidden", "true");
+    current = "X";
+    gameOver = false;
+    buildBoard();
+    setTurnStatus();
+    restartBtn.focus();
+  }
+
+  restartBtn.addEventListener("click", restart);
+  overlayRestartBtn.addEventListener("click", restart);
+
+  buildBoard();
+  setTurnStatus();
+})();
+</script>
+</body>
+</html>

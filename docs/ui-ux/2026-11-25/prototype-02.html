@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tic-Tac-Toe — Retro Pixel Prototype (4×4)</title>
+<style>
+  :root {
+    --ink: #1a1c2c;
+    --paper: #f4f4e8;
+    --panel: #fffdf5;
+    --grid-line: #1a1c2c;
+    --x-color: #e43b44;
+    --o-color: #4b8f8c;
+    --accent: #f7b32b;
+    --shadow: #1a1c2c;
+    --disabled: #b9b7a8;
+    --focus: #2965a6;
+    --font: "Courier New", Courier, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(26, 28, 44, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26, 28, 44, 0.05) 1px, transparent 1px);
+    background-size: 16px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    min-height: 100vh;
+  }
+
+  .cabinet {
+    width: 100%;
+    max-width: 520px;
+    background: var(--panel);
+    border: 4px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--shadow);
+    padding: 18px 16px 22px;
+  }
+
+  .marquee {
+    background: var(--ink);
+    color: var(--accent);
+    text-align: center;
+    padding: 10px 8px;
+    border: 4px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--shadow);
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.1rem, 5vw, 1.5rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .marquee p {
+    margin: 4px 0 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--paper);
+    text-transform: uppercase;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px;
+    margin-bottom: 12px;
+    background: var(--paper);
+    border: 4px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--shadow);
+    font-weight: 700;
+    font-size: clamp(0.85rem, 3.5vw, 1rem);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+  }
+
+  .status .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    border: 3px solid var(--ink);
+    background: #fff;
+    font-weight: 800;
+  }
+
+  .badge.x { color: var(--x-color); background: #ffe9ea; }
+  .badge.o { color: var(--o-color); background: #e4f2f1; }
+
+  .board-wrap { position: relative; }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    background: var(--ink);
+    border: 4px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--shadow);
+    padding: 6px;
+  }
+
+  .cell {
+    aspect-ratio: 1 / 1;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font);
+    font-size: clamp(1.5rem, 7vw, 2.4rem);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--ink);
+    background: var(--panel);
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    padding: 0;
+    box-shadow: inset -4px -4px 0 rgba(26, 28, 44, 0.18), inset 4px 4px 0 rgba(255, 255, 255, 0.9);
+    transition: background 0.08s steps(2), transform 0.08s steps(2);
+  }
+
+  .cell:hover:not(:disabled) {
+    background: var(--accent);
+    transform: translate(-2px, -2px);
+  }
+
+  .cell:focus-visible {
+    outline: 4px solid var(--focus);
+    outline-offset: 2px;
+    z-index: 1;
+  }
+
+  .cell:active:not(:disabled) {
+    transform: translate(0, 0);
+    box-shadow: inset 4px 4px 0 rgba(26, 28, 44, 0.25);
+  }
+
+  .cell:disabled { cursor: default; }
+  .cell.taken { cursor: default; }
+
+  .cell.x { color: var(--x-color); background: #ffe9ea; }
+  .cell.o { color: var(--o-color); background: #e4f2f1; }
+
+  .cell.win {
+    background: var(--accent);
+    animation: blink 0.45s steps(1) infinite alternate;
+  }
+
+  @keyframes blink {
+    from { background: var(--accent); }
+    to { background: #ffffff; }
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(26, 28, 44, 0.88);
+    border: 4px solid var(--ink);
+    text-align: center;
+    padding: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s steps(3), visibility 0.2s;
+  }
+
+  .overlay.show { opacity: 1; visibility: visible; }
+
+  .overlay .result {
+    margin: 0;
+    color: var(--accent);
+    font-size: clamp(1.2rem, 6vw, 1.7rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .overlay .hint {
+    margin: 0;
+    color: var(--paper);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .btn {
+    font-family: var(--font);
+    font-weight: 800;
+    font-size: clamp(0.85rem, 3.5vw, 1rem);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+    background: var(--accent);
+    border: 4px solid var(--ink);
+    border-radius: 0;
+    padding: 12px 24px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 var(--shadow);
+    transition: transform 0.08s steps(2), box-shadow 0.08s steps(2), background 0.1s steps(2);
+  }
+
+  .btn:hover { background: #ffd76a; transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--shadow); }
+  .btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--shadow); }
+  .btn:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  .btn:disabled { background: var(--disabled); cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--shadow); }
+
+  .actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .rules {
+    margin: 14px 0 0;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    letter-spacing: 0.05em;
+    text-align: center;
+    text-transform: uppercase;
+    color: #4a4c60;
+  }
+
+  @media (max-width: 380px) {
+    .cabinet { padding: 12px 10px 16px; }
+    .board { gap: 4px; padding: 4px; }
+    .cell { min-height: 48px; box-shadow: inset -3px -3px 0 rgba(26, 28, 44, 0.18), inset 3px 3px 0 rgba(255, 255, 255, 0.9); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="cabinet" aria-label="Tic-Tac-Toe game, retro pixel style, 4 by 4 board">
+  <header class="marquee">
+    <h1>Tic-Tac-Toe</h1>
+    <p>Pixel Arcade · 4 × 4</p>
+  </header>
+
+  <div class="status" id="status" role="status" aria-live="polite">
+    <span class="badge x" id="statusBadge" aria-hidden="true">X</span>
+    <span id="statusText">Player X's turn</span>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board" role="grid" aria-label="4 by 4 Tic-Tac-Toe board, four in a row wins"></div>
+    <div class="overlay" id="overlay" aria-hidden="true">
+      <p class="result" id="resultText"></p>
+      <p class="hint" id="resultHint">Insert coin — press new game</p>
+      <button class="btn" id="overlayRestart" type="button">New Game</button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="restart" type="button">Restart</button>
+  </div>
+
+  <p class="rules">4 × 4 board · get 4 in a row to win · X always starts</p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var SIZE = 4;
+  var STREAK = 4;
+
+  var boardEl = document.getElementById("board");
+  var statusText = document.getElementById("statusText");
+  var statusBadge = document.getElementById("statusBadge");
+  var overlay = document.getElementById("overlay");
+  var resultText = document.getElementById("resultText");
+  var restartBtn = document.getElementById("restart");
+  var overlayRestartBtn = document.getElementById("overlayRestart");
+
+  var cells = [];
+  var state = [];
+  var current = "X";
+  var gameOver = false;
+
+  function cellName(i) {
+    var letters = "ABCDEFGH";
+    return letters.charAt(i % SIZE) + (Math.floor(i / SIZE) + 1);
+  }
+
+  function buildBoard() {
+    boardEl.innerHTML = "";
+    cells = [];
+    state = [];
+    for (var i = 0; i < SIZE * SIZE; i++) {
+      state.push("");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cell";
+      btn.setAttribute("role", "gridcell");
+      btn.setAttribute("aria-label", "Cell " + cellName(i) + ", empty");
+      btn.addEventListener("click", onCellClick);
+      boardEl.appendChild(btn);
+      cells.push(btn);
+    }
+  }
+
+  function findWin() {
+    var dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        var v = state[r * SIZE + c];
+        if (!v) { continue; }
+        for (var d = 0; d < dirs.length; d++) {
+          var dr = dirs[d][0], dc = dirs[d][1];
+          var line = [];
+          for (var k = 0; k < STREAK; k++) {
+            var nr = r + dr * k, nc = c + dc * k;
+            if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) { break; }
+            if (state[nr * SIZE + nc] !== v) { break; }
+            line.push(nr * SIZE + nc);
+          }
+          if (line.length === STREAK) { return { player: v, line: line }; }
+        }
+      }
+    }
+    return null;
+  }
+
+  function isDraw() {
+    return state.every(function (v) { return v !== ""; });
+  }
+
+  function setTurnStatus() {
+    statusText.textContent = "Player " + current + "'s turn";
+    statusBadge.textContent = current;
+    statusBadge.className = "badge " + current.toLowerCase();
+  }
+
+  function updateCellAria(i, label) {
+    cells[i].setAttribute("aria-label", "Cell " + cellName(i) + ", " + label);
+  }
+
+  function finish(win) {
+    gameOver = true;
+    cells.forEach(function (c) { c.disabled = true; });
+    if (win) {
+      win.line.forEach(function (idx) { cells[idx].classList.add("win"); });
+      resultText.textContent = "Player " + win.player + " wins!";
+      statusText.textContent = "Player " + win.player + " wins!";
+    } else {
+      resultText.textContent = "Draw game!";
+      statusText.textContent = "Draw game!";
+    }
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden", "false");
+    overlayRestartBtn.focus();
+  }
+
+  function onCellClick(e) {
+    var idx = cells.indexOf(e.currentTarget);
+    if (gameOver || state[idx] !== "") { return; }
+    state[idx] = current;
+    var cell = cells[idx];
+    cell.textContent = current;
+    cell.classList.add("taken", current.toLowerCase());
+    updateCellAria(idx, current);
+    var win = findWin();
+    if (win) { finish(win); return; }
+    if (isDraw()) { finish(null); return; }
+    current = current === "X" ? "O" : "X";
+    setTurnStatus();
+  }
+
+  function restart() {
+    overlay.classList.remove("show");
+    overlay.setAttribute("aria-hidden", "true");
+    current = "X";
+    gameOver = false;
+    buildBoard();
+    setTurnStatus();
+    restartBtn.focus();
+  }
+
+  restartBtn.addEventListener("click", restart);
+  overlayRestartBtn.addEventListener("click", restart);
+
+  buildBoard();
+  setTurnStatus();
+})();
+</script>
+</body>
+</html>
